@@ -77,9 +77,10 @@ docker compose up --build
 
 | Service     | Role                         | Port |
 |-------------|------------------------------|------|
-| `searchlab` | Django REST API              | 8000 |
-| `db`        | PostgreSQL 16                | 5432 |
-| `redis`     | Redis 7 (ready for later)    | 6379 |
+| `searchlab`     | Django REST API           | 8000 |
+| `db`            | PostgreSQL 16             | 5432 |
+| `redis`         | Redis 7                   | 6379 |
+| `elasticsearch` | Elasticsearch 8.15        | 9200 |
 
 3. In another terminal, load data into the Docker database:
 

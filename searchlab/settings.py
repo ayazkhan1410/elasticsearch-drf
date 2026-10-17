@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "django_elasticsearch_dsl",
+    "django_elasticsearch_dsl_drf",
     "product",
 ]
 
@@ -87,6 +89,13 @@ else:
 
 # Redis is available via Docker; used later for caching/queues.
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+# Elasticsearch (Docker service: elasticsearch, local default: localhost:9200)
+ELASTICSEARCH_DSL = {
+    "default": {
+        "hosts": os.getenv("ELASTICSEARCH_HOST", "http://127.0.0.1:9200"),
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

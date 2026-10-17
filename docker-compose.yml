@@ -11,6 +11,7 @@ services:
     environment:
       DB_HOST: db
       REDIS_URL: redis://redis:6379/0
+      ELASTICSEARCH_HOST: http://elasticsearch:9200
     volumes:
       - .:/app
     depends_on:
@@ -18,6 +19,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      elasticsearch:
+        condition: service_healthy
     restart: unless-stopped
 
   db:
@@ -47,6 +50,26 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: searchlab-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  elasticsearch_data:

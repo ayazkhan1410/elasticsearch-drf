@@ -18,4 +18,5 @@ class ProductDocument(Document):
         fields = [
             "product_name",
             "description",
+            "price",
         ]

@@ -16,3 +16,5 @@ class RetrieveProductDataView(APIView):
         search = request.GET.get("search")
         if not search:
             return Response({"error": "Search query is required"}, status=400)
+
+        return Response({"message": "Product data retrieved successfully"})

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SearchLab — Product search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0b1412;
+      --panel: rgba(18, 36, 32, 0.72);
+      --line: rgba(200, 245, 96, 0.22);
+      --lime: #c8f560;
+      --lime-dim: #9bc43a;
+      --mist: #d7e4dc;
+      --muted: #8aa396;
+      --danger: #ff8f8f;
+      --radius: 14px;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      font-family: "IBM Plex Sans", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--mist);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(200, 245, 96, 0.18), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 10%, rgba(72, 160, 130, 0.2), transparent 50%),
+        linear-gradient(165deg, #07110e 0%, #10241e 45%, #0b1412 100%);
+    }
+
+    .shell {
+      width: min(720px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: clamp(3rem, 10vh, 6rem) 0 4rem;
+    }
+
+    .brand {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(2.8rem, 8vw, 4.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 0.95;
+      margin: 0 0 0.75rem;
+      color: #f4faf5;
+      animation: rise 0.7s ease both;
+    }
+
+    .brand span {
+      color: var(--lime);
+    }
+
+    .lede {
+      margin: 0 0 2rem;
+      max-width: 34ch;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      color: var(--muted);
+      animation: rise 0.7s ease 0.08s both;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 0.65rem;
+      padding: 0.55rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      animation: rise 0.7s ease 0.16s both;
+    }
+
+    .search-bar input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--mist);
+      font: inherit;
+      font-size: 1.05rem;
+      padding: 0.85rem 1rem;
+    }
+
+    .search-bar input::placeholder {
+      color: rgba(138, 163, 150, 0.8);
+    }
+
+    .search-bar button {
+      border: 0;
+      border-radius: var(--radius);
+      padding: 0.85rem 1.25rem;
+      background: var(--lime);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .search-bar button:hover {
+      background: #d8ff7a;
+      transform: translateY(-1px);
+    }
+
+    .search-bar button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+    }
+
+    .status {
+      min-height: 1.5rem;
+      margin: 1rem 0 0.5rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .status.error { color: var(--danger); }
+
+    .results {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .results li {
+      padding: 1.1rem 1.2rem;
+      border-left: 3px solid var(--lime-dim);
+      background: linear-gradient(90deg, rgba(200, 245, 96, 0.08), transparent 55%);
+      animation: rise 0.45s ease both;
+    }
+
+    .results li:nth-child(2) { animation-delay: 0.05s; }
+    .results li:nth-child(3) { animation-delay: 0.1s; }
+    .results li:nth-child(4) { animation-delay: 0.15s; }
+    .results li:nth-child(5) { animation-delay: 0.2s; }
+
+    .results h2 {
+      margin: 0 0 0.35rem;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: #f4faf5;
+    }
+
+    .price {
+      display: inline-block;
+      margin-bottom: 0.45rem;
+      font-weight: 600;
+      color: var(--lime);
+      letter-spacing: 0.02em;
+    }
+
+    .results p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+
+    .api-hint {
+      margin-top: 2.5rem;
+      font-size: 0.85rem;
+      color: rgba(138, 163, 150, 0.75);
+      animation: rise 0.7s ease 0.24s both;
+    }
+
+    .api-hint code {
+      color: var(--mist);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1 class="brand">Search<span>Lab</span></h1>
+    <p class="lede">Type a product name or description keyword. Results come from Elasticsearch via the Django API.</p>
+
+    <form class="search-bar" id="search-form" autocomplete="off">
+      <input
+        id="search-input"
+        type="search"
+        name="search"
+        placeholder="e.g. microphone, oatmeal, cheese…"
+        required
+        autofocus
+      >
+      <button type="submit" id="search-btn">Search</button>
+    </form>
+
+    <p class="status" id="status" aria-live="polite"></p>
+    <ul class="results" id="results"></ul>
+
+    <p class="api-hint">API: <code>GET /api/products/?search=…</code></p>
+  </main>
+
+  <script>
+    const form = document.getElementById("search-form");
+    const input = document.getElementById("search-input");
+    const button = document.getElementById("search-btn");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+
+    const DEBOUNCE_MS = 250;
+    let debounceTimer = null;
+    let activeController = null;
+    let requestSeq = 0;
+
+    function money(value) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return value ?? "";
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: "USD",
+      }).format(num);
+    }
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function clearResults() {
+      resultsEl.innerHTML = "";
+    }
+
+    function renderProducts(products) {
+      clearResults();
+      if (!products.length) {
+        setStatus("No products matched that query.");
+        return;
+      }
+
+      setStatus(`${products.length} result${products.length === 1 ? "" : "s"}`);
+      for (const product of products) {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <h2></h2>
+          <div class="price"></div>
+          <p></p>
+        `;
+        li.querySelector("h2").textContent = product.product_name || "Untitled";
+        li.querySelector(".price").textContent = money(product.price);
+        li.querySelector("p").textContent = product.description || "";
+        resultsEl.appendChild(li);
+      }
+    }
+
+    async function runSearch(query) {
+      if (activeController) {
+        activeController.abort();
+      }
+
+      if (!query) {
+        clearResults();
+        setStatus("");
+        button.disabled = false;
+        return;
+      }
+
+      const controller = new AbortController();
+      activeController = controller;
+      const seq = ++requestSeq;
+
+      button.disabled = true;
+      setStatus("Searching…");
+
+      try {
+        const url = `/api/products/?search=${encodeURIComponent(query)}`;
+        const response = await fetch(url, { signal: controller.signal });
+        const data = await response.json();
+
+        if (seq !== requestSeq) return;
+
+        if (!response.ok) {
+          clearResults();
+          setStatus(data.error || "Search failed.", true);
+          return;
+        }
+
+        renderProducts(data.products || []);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        if (seq !== requestSeq) return;
+        clearResults();
+        setStatus("Could not reach the API. Is the server running?", true);
+      } finally {
+        if (seq === requestSeq) {
+          button.disabled = false;
+        }
+      }
+    }
+
+    function scheduleSearch() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        runSearch(input.value.trim());
+      }, DEBOUNCE_MS);
+    }
+
+    input.addEventListener("input", scheduleSearch);
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearTimeout(debounceTimer);
+      runSearch(input.value.trim());
+    });
+  </script>
+</body>
+</html>

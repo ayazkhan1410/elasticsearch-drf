@@ -1,8 +1,6 @@
 # SearchLab
 
-Beginner-friendly Django REST Framework starter for learning Elasticsearch step by step.
-
-This stage sets up a clean flat project with Docker (PostgreSQL + Redis), a `Product` model, admin, and a CSV loader. Elasticsearch is **not** installed yet.
+Django REST Framework + Elasticsearch product search demo. Includes PostgreSQL, Redis, a CSV data loader, a JSON search API, and a browser UI for live testing.
 
 ## Folder structure
 
@@ -11,101 +9,117 @@ searchlab/
 ├── manage.py
 ├── requirements.txt
 ├── Dockerfile
-├── docker-compose.yml      # Services: searchlab, db, redis
+├── docker-compose.yml      # searchlab, db, redis, elasticsearch
 ├── MOCK_DATA.csv
 ├── .env.example
 ├── .gitignore
 ├── README.md
 ├── searchlab/              # Django project settings / URLs
-├── product/                # Product app (models, admin, API)
-├── utils/                  # Helpers + CSV load script
+├── product/                # Models, documents, API, search UI template
+├── utils/                  # CSV loader + Elasticsearch helpers
 └── venv/                   # Local virtual environment (gitignored)
 ```
 
 ## Prerequisites
 
 - Python 3.12+ (local venv; Docker image uses 3.12)
-- Docker Desktop
+- Docker Desktop (or Docker Engine + Compose)
 
-## Local setup (virtual environment)
+## Environment
 
-From the project root:
-
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+```bash
+cp .env.example .env
 ```
 
-Without Docker, Django uses **SQLite** when `DB_HOST` is unset. For local SQLite, temporarily comment out or remove `DB_HOST` from `.env`, or rename `.env` while developing locally.
+| Variable | Purpose |
+|----------|---------|
+| `DJANGO_SECRET_KEY` | Django secret |
+| `DJANGO_DEBUG` | Debug mode |
+| `DJANGO_ALLOWED_HOSTS` | Allowed hosts |
+| `DB_*` | Postgres credentials (used when `DB_HOST` is set) |
+| `REDIS_URL` | Redis URL (host-mapped default for local tools) |
+| `ELASTICSEARCH_HOST` | Elasticsearch URL |
 
-### Migrations
-
-```powershell
-python manage.py migrate
-```
-
-### Load mock products + create superuser
-
-```powershell
-python utils/load_mock_data.py
-```
-
-This will:
-
-- Create/update superuser: username `admin`, password `1234`
-- Insert rows from `MOCK_DATA.csv` into the `Product` table
-
-### Run the development server
-
-```powershell
-python manage.py runserver
-```
-
-- Admin: http://127.0.0.1:8000/admin/ (`admin` / `1234`)
-- Health: http://127.0.0.1:8000/api/product/health/
+`DB_HOST` is injected by Docker Compose for the app service. Leave it unset for local SQLite.
 
 ## Docker setup (recommended)
 
-1. Start **Docker Desktop** and wait until it is ready.
-2. From the project root:
+Host ports are remapped so they do not clash with other local projects:
 
-```powershell
-copy .env.example .env
-docker compose up --build
+| Service | Role | Host port |
+|---------|------|-----------|
+| `searchlab` | Django app + search UI | **8001** |
+| `db` | PostgreSQL 16 | **5433** |
+| `redis` | Redis 7 | **6380** |
+| `elasticsearch` | Elasticsearch 8.15 | **9201** |
+
+```bash
+cp .env.example .env
+docker compose up --build -d
 ```
 
-| Service     | Role                         | Host port |
-|-------------|------------------------------|-----------|
-| `searchlab`     | Django REST API           | 8001 |
-| `db`            | PostgreSQL 16             | 5433 |
-| `redis`         | Redis 7                   | 6380 |
-| `elasticsearch` | Elasticsearch 8.15        | 9201 |
+Load products + create superuser:
 
-3. In another terminal, load data into the Docker database:
-
-```powershell
+```bash
 docker compose exec searchlab python utils/load_mock_data.py
 ```
 
-4. Open http://127.0.0.1:8001/api/product/health/
+Build / rebuild the Elasticsearch index:
+
+```bash
+docker compose exec searchlab python manage.py search_index --rebuild -f
+```
 
 Useful commands:
 
-```powershell
-docker compose down
+```bash
 docker compose logs -f searchlab
-docker compose exec searchlab python manage.py migrate
+docker compose exec searchlab bash
+docker compose down
 ```
 
-## Product model fields
+**Code changes:** the project root is mounted at `/app`, and Django `runserver` auto-reloads. You do **not** need `docker compose up --build` for normal `.py` / template edits. Rebuild only when `requirements.txt` or the `Dockerfile` change. After changing indexed fields in `product/documents.py`, run `search_index --rebuild -f` again.
 
-| Field          | Type           | CSV column     |
-|----------------|----------------|----------------|
-| `product_name` | CharField      | product_name   |
-| `price`        | DecimalField   | price          |
-| `description`  | TextField      | description    |
+## URLs (Docker)
 
-## What’s next
+| Page / endpoint | URL |
+|-----------------|-----|
+| Search UI | http://127.0.0.1:8001/ |
+| Search API | http://127.0.0.1:8001/api/products/?search=beef |
+| Health | http://127.0.0.1:8001/api/products/health/ |
+| Admin | http://127.0.0.1:8001/admin/ (`admin` / `1234`) |
 
-Elasticsearch packages, indexing, and search endpoints will be added later.
+The search UI calls the API as you type (debounced). The API matches whole words, prefixes while typing, and substring contains across `product_name` and `description`.
+
+## Local setup (virtual environment)
+
+```bash
+python -m venv venv
+source venv/bin/activate          # Windows: .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Without Docker, Django uses **SQLite** when `DB_HOST` is unset. Point `ELASTICSEARCH_HOST` / `REDIS_URL` at services you have running (or use the Docker host ports above).
+
+```bash
+python manage.py migrate
+python utils/load_mock_data.py
+python manage.py search_index --rebuild -f
+python manage.py runserver
+```
+
+Local default URLs use port **8000** unless you change them.
+
+## Product model
+
+| Field | Type | CSV column |
+|-------|------|------------|
+| `product_name` | CharField | product_name |
+| `price` | DecimalField | price |
+| `description` | TextField | description |
+
+## Elasticsearch document
+
+Defined in `product/documents.py` (index name: `products`). Indexed fields: `product_name`, `description`, `price`.
+
+`django-elasticsearch-dsl` only auto-discovers `documents.py` inside apps listed in `INSTALLED_APPS` — keep documents under `product/`, not a non-app folder.

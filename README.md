@@ -75,12 +75,12 @@ copy .env.example .env
 docker compose up --build
 ```
 
-| Service     | Role                         | Port |
-|-------------|------------------------------|------|
-| `searchlab`     | Django REST API           | 8000 |
-| `db`            | PostgreSQL 16             | 5432 |
-| `redis`         | Redis 7                   | 6379 |
-| `elasticsearch` | Elasticsearch 8.15        | 9200 |
+| Service     | Role                         | Host port |
+|-------------|------------------------------|-----------|
+| `searchlab`     | Django REST API           | 8001 |
+| `db`            | PostgreSQL 16             | 5433 |
+| `redis`         | Redis 7                   | 6380 |
+| `elasticsearch` | Elasticsearch 8.15        | 9201 |
 
 3. In another terminal, load data into the Docker database:
 
@@ -88,7 +88,7 @@ docker compose up --build
 docker compose exec searchlab python utils/load_mock_data.py
 ```
 
-4. Open http://127.0.0.1:8000/api/product/health/
+4. Open http://127.0.0.1:8001/api/product/health/
 
 Useful commands:
 

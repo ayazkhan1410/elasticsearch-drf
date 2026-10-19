@@ -24,10 +24,21 @@ class RetrieveProductDataView(APIView):
         if not search:
             return Response({"error": "Search query is required"}, status=400)
 
-        products = ProductDocument.search().query(
-            Q("multi_match", query=search, fields=[
-                "product_name", "description"])
-        ).extra(size=5).execute()
+        products = (
+            ProductDocument.search()
+            .query(
+                Q(
+                    "multi_match",
+                    query=search,
+                    fields=["product_name", "description"],
+                    fuzziness="AUTO",
+                    operator="OR",
+                    type="best_fields",
+                )
+            )
+            .extra(size=5)
+            .execute()
+        )
 
         serializer = ProductDocumentSerializer(products, many=True)
         return Response({

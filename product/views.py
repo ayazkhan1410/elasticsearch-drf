@@ -1,6 +1,8 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from elasticsearch_dsl import Q
+
 from product.documents import ProductDocument
 from product.serializer import ProductDocumentSerializer
 
@@ -23,7 +25,8 @@ class RetrieveProductDataView(APIView):
             return Response({"error": "Search query is required"}, status=400)
 
         products = ProductDocument.search().query(
-            "match", product_name=search
+            Q("multi_match", query=search, fields=[
+                "product_name", "description"])
         ).extra(size=5).execute()
 
         serializer = ProductDocumentSerializer(products, many=True)

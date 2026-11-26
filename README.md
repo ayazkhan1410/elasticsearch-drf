@@ -2,6 +2,40 @@
 
 Django REST Framework + Elasticsearch product search demo. Includes PostgreSQL, Redis, a CSV data loader, a JSON search API, and a browser UI for live testing.
 
+![SearchLab live search](project-images/02-search-results.png)
+
+## Features
+
+- **Search as you type**: debounced live search UI that queries the API on every keystroke
+- **Smart matching**: whole words, prefixes while typing and substring matches across product name and description
+- **Elasticsearch index** managed with `django-elasticsearch-dsl`, kept in sync with the Django model
+- **JSON search API** with DRF (`/api/products/?search=...`) and a health endpoint
+- **CSV loader** that imports 1,000 mock products and skips duplicates or invalid rows
+- **Docker Compose** stack: Django, PostgreSQL 16, Redis 7, Elasticsearch 8.15
+- Django admin for products
+
+## Screenshots
+
+Real screenshots of the running app with the bundled `MOCK_DATA.csv` products indexed in Elasticsearch.
+
+| Search UI | Prefix search while typing |
+|---|---|
+| ![Search UI](project-images/01-search-ui.png) | ![Prefix search](project-images/03-prefix-search.png) |
+| **Search API** | **Health endpoint** |
+| ![Search API](project-images/04-search-api.png) | ![Health](project-images/05-health-api.png) |
+| **Django admin** | |
+| ![Admin](project-images/06-admin-products.png) | |
+
+## Tech stack
+
+| Layer | Tech |
+|---|---|
+| Backend | Django 5.2, Django REST Framework |
+| Search | Elasticsearch 8.15, django-elasticsearch-dsl |
+| Database | PostgreSQL 16 (Docker) or SQLite (local) |
+| Cache | Redis 7 |
+| Run | Docker Compose |
+
 ## Folder structure
 
 ```
@@ -61,7 +95,7 @@ docker compose up --build -d
 Load products + create superuser:
 
 ```bash
-docker compose exec searchlab python utils/load_mock_data.py
+docker compose exec searchlab python -m utils.load_mock_data
 ```
 
 Build / rebuild the Elasticsearch index:
@@ -103,7 +137,7 @@ Without Docker, Django uses **SQLite** when `DB_HOST` is unset. Point `ELASTICSE
 
 ```bash
 python manage.py migrate
-python utils/load_mock_data.py
+python -m utils.load_mock_data
 python manage.py search_index --rebuild -f
 python manage.py runserver
 ```
